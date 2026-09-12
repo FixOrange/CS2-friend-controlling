@@ -1,0 +1,9 @@
+discord.py
+keyboard
+pynput
+numpy
+pygame
+mss
+pillow
+pycaw
+comtypes
