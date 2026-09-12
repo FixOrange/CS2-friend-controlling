@@ -4,6 +4,8 @@ import threading
 import time
 import sys
 import queue
+import random
+import os
 import ctypes
 import ctypes.wintypes
 import numpy as np
@@ -15,8 +17,8 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="mss")
 
 
-BOT_TOKEN = "ТОКЕН БОТА СЮДА"
-CHANNEL_ID = АЙДИ КАНАЛА СЮДА БЕЗ КАВЫЧЕК!
+BOT_TOKEN = "ТОКЕН БОТА ЗДЕСЬ"
+CHANNEL_ID = АЙДИ КАНАЛА (НЕОБЯЗАТЕЛЬНО, ЕСЛИ НЕ НУЖНО ПОСТАВЬТЕ РАНДОМНЫЕ ЦИФРЫ, И НУЖНО БЕЗ КАВЫЧЕК!!!)
 PREFIX = "!"
 
 
@@ -222,10 +224,160 @@ def make_camera_sound(duration=0.35, rate=44100):
     return pygame.sndarray.make_sound(np.ascontiguousarray(stereo))
 
 
+def make_bell_sound(duration=1.2, rate=44100):
+    t = np.linspace(0, duration, int(rate * duration), False)
+    f1 = np.sin(2 * np.pi * 880 * t) * np.exp(-t * 2.5)
+    f2 = np.sin(2 * np.pi * 1320 * t) * np.exp(-t * 3.5) * 0.6
+    f3 = np.sin(2 * np.pi * 1760 * t) * np.exp(-t * 5.0) * 0.35
+    f4 = np.sin(2 * np.pi * 660 * t) * np.exp(-t * 1.8) * 0.45
+    s = f1 + f2 + f3 + f4
+    peak = np.max(np.abs(s))
+    if peak > 0:
+        s = s / peak
+    s = (s * 32767).astype(np.int16)
+    stereo = np.column_stack((s, s))
+    return pygame.sndarray.make_sound(np.ascontiguousarray(stereo))
+
+
 flash_sound = make_flash_sound(9.5)
 flash_sound.set_volume(1.0)
 camera_sound = make_camera_sound()
 camera_sound.set_volume(1.0)
+bell_sound = make_bell_sound()
+bell_sound.set_volume(1.0)
+
+_steps_sound = None
+_steps_loaded = False
+
+
+def load_steps_sound():
+    global _steps_sound, _steps_loaded
+    if _steps_loaded:
+        return _steps_sound
+    _steps_loaded = True
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "steps.mp3")
+    if not os.path.isfile(path):
+        print(f"[steps] не нашёл файл: {path}")
+        return None
+    try:
+        _steps_sound = pygame.mixer.Sound(path)
+        _steps_sound.set_volume(1.0)
+        print(f"[steps] загружен: {path}")
+    except Exception as e:
+        print(f"[steps] не смог загрузить: {e}")
+        _steps_sound = None
+    return _steps_sound
+
+
+def play_steps_random_ear():
+    snd = load_steps_sound()
+    if snd is None:
+        return 0.0
+
+    arr = pygame.sndarray.array(snd)
+    if arr.ndim == 1:
+        arr = np.column_stack((arr, arr))
+
+    if random.random() < 0.5:
+        arr = np.column_stack((arr[:, 0], np.zeros_like(arr[:, 1])))
+        side = "левое"
+    else:
+        arr = np.column_stack((np.zeros_like(arr[:, 0]), arr[:, 1]))
+        side = "правое"
+
+    channel = pygame.mixer.find_channel(True)
+    if channel is None:
+        return 0.0
+
+    stereo = np.ascontiguousarray(arr.astype(np.int16))
+    new_snd = pygame.sndarray.make_sound(stereo)
+    new_snd.set_volume(1.0)
+    channel.play(new_snd)
+    print(f"[steps] играет в {side} ухо")
+
+    length = snd.get_length()
+    return length
+
+
+TROLLED_DURATION = 2.5
+
+trolled_state = {
+    "win": None,
+    "after_id": None,
+}
+
+
+def show_trolled():
+    st = trolled_state
+
+    if st["after_id"] is not None and st["win"] is not None:
+        try:
+            st["win"].after_cancel(st["after_id"])
+        except Exception:
+            pass
+        st["after_id"] = None
+    if st["win"] is not None:
+        try:
+            st["win"].destroy()
+        except Exception:
+            pass
+        st["win"] = None
+
+    win = tk.Toplevel(root)
+    win.overrideredirect(True)
+    win.attributes("-topmost", True)
+    sw = win.winfo_screenwidth()
+    sh = win.winfo_screenheight()
+    win.geometry(f"{sw}x{sh}+0+0")
+    win.configure(bg="black")
+
+    lbl = tk.Label(
+        win,
+        text="TROLLED",
+        fg="red",
+        bg="black",
+        font=("Impact", int(sh / 6), "bold"),
+    )
+    lbl.pack(expand=True)
+
+    win.update_idletasks()
+    h = user32.GetParent(win.winfo_id()) or win.winfo_id()
+    make_click_through(h)
+
+    try:
+        bell_sound.stop()
+        bell_sound.play()
+    except Exception:
+        pass
+
+    st["win"] = win
+    st["after_id"] = win.after(int(TROLLED_DURATION * 1000), close_trolled)
+
+
+def close_trolled():
+    st = trolled_state
+    if st["after_id"] is not None and st["win"] is not None:
+        try:
+            st["win"].after_cancel(st["after_id"])
+        except Exception:
+            pass
+        st["after_id"] = None
+    if st["win"] is not None:
+        try:
+            st["win"].destroy()
+        except Exception:
+            pass
+        st["win"] = None
+
+
+def cmd_steps_effect():
+    length = play_steps_random_ear()
+    delay_ms = int(max(0.0, length) * 1000)
+    root.after(delay_ms, show_trolled)
+
+
+def cmd_steps():
+    run_on_main(cmd_steps_effect)
 
 
 class SystemVolume:
@@ -507,6 +659,7 @@ COMMANDS = {
     "jump": cmd_jump,
     "flash": cmd_flash,
     "styve": cmd_styve,
+    "steps": cmd_steps,
 }
 
 COMMAND_COOLDOWNS = {
@@ -518,6 +671,7 @@ COMMAND_COOLDOWNS = {
     "jump": 5,
     "flash": 15,
     "styve": 40,
+    "steps": 60,
 }
 
 GLOBAL_COOLDOWN = 5
@@ -534,6 +688,7 @@ BUTTON_LABELS = {
     "jump": "🦘 Jump",
     "flash": "⚡ Flash",
     "styve": "📸 Styve",
+    "steps": "👣 Steps",
 }
 
 
@@ -702,6 +857,7 @@ async def panel_loop(message, uid):
 async def on_ready():
     print(f"[discord] вошёл как {client.user}")
     print("[discord] работаю только в лс")
+    load_steps_sound()
 
 
 @client.event
@@ -714,7 +870,7 @@ async def on_message(message):
     if not is_dm:
         if message.channel.id == CHANNEL_ID and message.content.startswith(PREFIX):
             try:
-                await message.channel.send("Напишите в лс !start")
+                await message.channel.send("Напишите в лс боту")
             except Exception:
                 pass
         return
