@@ -14,6 +14,7 @@
 | `!jump` | 🦘 Jump | Нажимает `Space` |
 | `!flash` | ⚡ Flash | Белый экран + звук вспышки + приглушение системной громкости |
 | `!styve` | 📸 Styve | Звук затвора + скриншот экрана на 3 секунды |
+| `!steps` | 👣 Steps | Звук приближающихся шагов в рандомном из наушников |
 
 ## Установка
 
@@ -78,17 +79,18 @@ python main.py
 
 ```python
 COMMAND_COOLDOWNS = {
-    "drop": 10,
+    "drop": 15,
     "knife": 8,
     "hello": 40,
     "reload": 10,
-    "sens": 10,
-    "jump": 5,
-    "flash": 15,
+    "sens": 20,
+    "jump": 15,
+    "flash": 20,
     "styve": 40,
+    "steps": 60,
 }
 
-GLOBAL_COOLDOWN = 5
+GLOBAL_COOLDOWN = 10
 ```
 
 Меняй значения под себя. `0` значит без кулдауна.
