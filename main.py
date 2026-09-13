@@ -17,8 +17,8 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="mss")
 
 
-BOT_TOKEN = "ТОКЕН БОТА ЗДЕСЬ"
-CHANNEL_ID = АЙДИ КАНАЛА (НЕОБЯЗАТЕЛЬНО, ЕСЛИ НЕ НУЖНО ПОСТАВЬТЕ РАНДОМНЫЕ ЦИФРЫ, И НУЖНО БЕЗ КАВЫЧЕК!!!)
+BOT_TOKEN = "ТОКЕН БОТА"
+CHANNEL_ID = АЙДИ КАНАЛА, БЕЗ КАВЫЧЕК, ЕСЛИ НЕ НУЖНО - ТО ПРОСТО ЛЮБЫЕ ЦИФРЫ
 PREFIX = "!"
 
 
@@ -663,18 +663,18 @@ COMMANDS = {
 }
 
 COMMAND_COOLDOWNS = {
-    "drop": 10,
+    "drop": 15,
     "knife": 8,
     "hello": 40,
     "reload": 10,
-    "sens": 10,
-    "jump": 5,
-    "flash": 15,
+    "sens": 20,
+    "jump": 15,
+    "flash": 20,
     "styve": 40,
     "steps": 60,
 }
 
-GLOBAL_COOLDOWN = 5
+GLOBAL_COOLDOWN = 10
 
 user_cooldowns = {}
 user_global = {}
